@@ -324,11 +324,11 @@ const material = new THREE.ShaderMaterial({
                         vec2(
                             rotatedX * 0.12 +
                             warpX +
-                            uTime * 0.008,
+                            uTime * 0.004,
 
                             rotatedY * 0.12 +
                             warpY +
-                            uTime * 0.006
+                            uTime * 0.003
                         )
                     ) * 2.0 - 1.0
                 ) * 0.75;
