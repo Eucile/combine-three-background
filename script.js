@@ -1,13 +1,20 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+
 import { createNoise2D } from 'https://cdn.jsdelivr.net/npm/simplex-noise@4.0.3/+esm';
 
-// Combine WebGL project
+
+// ============================================================
+// COMBINE WEBGL PROJECT
+// ============================================================
+
+
 
 // ============================================================
 // SCENE
 // ============================================================
 
 const scene = new THREE.Scene();
+
 
 
 // ============================================================
@@ -22,7 +29,9 @@ const camera = new THREE.PerspectiveCamera(
 );
 
 camera.position.set(0, 0, 8);
+
 camera.lookAt(0, 0, 0);
+
 
 
 // ============================================================
@@ -48,13 +57,20 @@ renderer.setClearColor(0x111111, 1);
 document.body.appendChild(renderer.domElement);
 
 
+
 // ============================================================
 // TERRAIN GEOMETRY
 // ============================================================
 
-const geometry = new THREE.PlaneGeometry(30, 30, 360, 360);
+const geometry = new THREE.PlaneGeometry(
+    30,
+    30,
+    500,
+    500
+);
 
 const positions = geometry.attributes.position;
+
 
 
 // ============================================================
@@ -64,8 +80,11 @@ const positions = geometry.attributes.position;
 const noise2D = createNoise2D();
 
 function noise(x, y) {
+
     return noise2D(x, y);
+
 }
+
 
 
 // ============================================================
@@ -73,6 +92,15 @@ function noise(x, y) {
 // ============================================================
 
 const material = new THREE.ShaderMaterial({
+
+    uniforms: {
+
+        uTime: {
+            value: 0
+        }
+
+    },
+
 
     // ========================================================
     // VERTEX SHADER
@@ -84,13 +112,16 @@ const material = new THREE.ShaderMaterial({
         varying vec3 vNormal;
         varying vec2 vPosition;
 
+
         void main() {
 
             // Terrain height
             elevation = position.z;
 
+
             // Terrain XY position
             vPosition = position.xy;
+
 
             // Smooth terrain normal
             vNormal =
@@ -98,10 +129,12 @@ const material = new THREE.ShaderMaterial({
                     normalMatrix * normal
                 );
 
+
             gl_Position =
                 projectionMatrix *
                 modelViewMatrix *
                 vec4(position, 1.0);
+
         }
 
     `,
@@ -113,9 +146,13 @@ const material = new THREE.ShaderMaterial({
 
     fragmentShader: `
 
+        uniform float uTime;
+
+
         varying float elevation;
         varying vec3 vNormal;
         varying vec2 vPosition;
+
 
 
         // ====================================================
@@ -140,7 +177,9 @@ const material = new THREE.ShaderMaterial({
             return fract(
                 p.x * p.y
             );
+
         }
+
 
 
         // ====================================================
@@ -152,6 +191,7 @@ const material = new THREE.ShaderMaterial({
             vec2 i = floor(p);
             vec2 f = fract(p);
 
+
             f =
                 f * f *
                 (
@@ -159,7 +199,9 @@ const material = new THREE.ShaderMaterial({
                     2.0 * f
                 );
 
+
             float a = hash(i);
+
 
             float b =
                 hash(
@@ -167,11 +209,13 @@ const material = new THREE.ShaderMaterial({
                     vec2(1.0, 0.0)
                 );
 
+
             float c =
                 hash(
                     i +
                     vec2(0.0, 1.0)
                 );
+
 
             float d =
                 hash(
@@ -179,15 +223,19 @@ const material = new THREE.ShaderMaterial({
                     vec2(1.0, 1.0)
                 );
 
+
             return mix(
                 mix(a, b, f.x),
                 mix(c, d, f.x),
                 f.y
             );
+
         }
 
 
+
         void main() {
+
 
             // ==================================================
             // DIRECTIONAL TERRAIN RELIEF
@@ -202,6 +250,7 @@ const material = new THREE.ShaderMaterial({
                     )
                 );
 
+
             float diffuse =
                 max(
                     dot(
@@ -211,6 +260,7 @@ const material = new THREE.ShaderMaterial({
                     0.0
                 );
 
+
             float relief =
                 smoothstep(
                     0.35,
@@ -219,75 +269,167 @@ const material = new THREE.ShaderMaterial({
                 ) * 0.06;
 
 
+
+            // ==================================================
+            // SMOOTH CONTOUR ELEVATION
+            //
+            // The contour field is calculated directly from
+            // the fragment position rather than interpolated
+            // mesh elevation. This keeps the contours smooth.
+            // ==================================================
+
+            float angle = 0.45;
+
+
+            float rotatedX =
+                vPosition.x * cos(angle) -
+                vPosition.y * sin(angle);
+
+
+            float rotatedY =
+                vPosition.x * sin(angle) +
+                vPosition.y * cos(angle);
+
+
+
+            // --------------------------------------------------
+            // Large-scale domain warp
+            // --------------------------------------------------
+
+            float warpX =
+                (
+                    noise(
+                        vPosition * 0.18
+                    ) * 2.0 - 1.0
+                ) * 0.25;
+
+
+            float warpY =
+                (
+                    noise(
+                        vPosition * 0.18 +
+                        vec2(100.0)
+                    ) * 2.0 - 1.0
+                ) * 0.25;
+
+
+
+            // --------------------------------------------------
+            // Large geological forms
+            // --------------------------------------------------
+
+            float smoothLarge =
+                (
+                    noise(
+                        vec2(
+                            rotatedX * 0.12 +
+                            warpX +
+                            uTime * 0.008,
+
+                            rotatedY * 0.12 +
+                            warpY +
+                            uTime * 0.006
+                        )
+                    ) * 2.0 - 1.0
+                ) * 0.75;
+
+
+
+            // --------------------------------------------------
+            // Medium detail
+            // --------------------------------------------------
+
+            float smoothMedium =
+                (
+                    noise(
+                        vPosition * 0.45
+                    ) * 2.0 - 1.0
+                ) * 0.12;
+
+
+
+            // --------------------------------------------------
+            // Fine detail
+            // --------------------------------------------------
+
+            float smoothFine =
+                (
+                    noise(
+                        vPosition * 2.0
+                    ) * 2.0 - 1.0
+                ) * 0.04;
+
+
+
+            // --------------------------------------------------
+            // Combined smooth elevation
+            // --------------------------------------------------
+
+            float contourElevation =
+                smoothLarge +
+                smoothMedium +
+                smoothFine;
+
+
+
             // ==================================================
             // MINOR CONTOURS
             // ==================================================
 
             float minorLevel =
-                elevation * 28.0;
-
-            // ==================================================
-// MINOR CONTOUR — ANTI-ALIASED
-// ==================================================
-
-// ==================================================
-// MINOR CONTOUR — CONTINUOUS ANTI-ALIASED
-// ==================================================
-
-// Convert the contour level into a continuous
-// repeating wave.
-
-// ==================================================
-// MINOR CONTOUR — SCREEN-SPACE ANTI-ALIASED
-// ==================================================
-
-// Continuous contour phase.
-float minorPhase =
-    minorLevel *
-    3.14159265;
+                contourElevation * 28.0;
 
 
-// Distance from the nearest contour center.
-float minorSignal =
-    abs(
-        sin(
-            minorPhase
-        )
-    );
+
+            // --------------------------------------------------
+            // Continuous contour phase
+            // --------------------------------------------------
+
+            float minorPhase =
+                minorLevel *
+                3.14159265;
 
 
-// IMPORTANT:
-// Calculate the pixel footprint from the original
-// continuous phase, not from the compressed signal.
-//
-// This gives us a stable estimate of how much the
-// contour moves across a screen pixel.
 
-float minorWidth =
-    fwidth(
-        minorPhase
-    );
+            // --------------------------------------------------
+            // Distance from nearest contour center
+            // --------------------------------------------------
 
-
-// Give the contour a small minimum width so that
-// extremely shallow regions don't disappear.
-
-minorWidth =
-    max(
-        minorWidth,
-        0.006
-    );
+            float minorSignal =
+                abs(
+                    sin(
+                        minorPhase
+                    )
+                );
 
 
-// Anti-aliased contour.
 
-float minorLine =
-    1.0 -
-    smoothstep(
-        0.0,
-        minorWidth * 1.0,
-        minorSignal
-    );
+            // --------------------------------------------------
+            // Screen-space anti-aliasing
+            // --------------------------------------------------
+
+            float minorWidth =
+                fwidth(
+                    minorPhase
+                );
+
+
+            minorWidth =
+                max(
+                    minorWidth,
+                    0.006
+                );
+
+
+
+            float minorLine =
+                1.0 -
+                smoothstep(
+                    0.0,
+                    minorWidth * 1.0,
+                    minorSignal
+                );
+
 
 
             // ==================================================
@@ -295,13 +437,17 @@ float minorLine =
             // ==================================================
 
             float majorLevel =
-                elevation * 8.0;
+                contourElevation * 8.0;
+
 
             float majorDistance =
                 abs(
-                    fract(majorLevel) -
+                    fract(
+                        majorLevel
+                    ) -
                     0.5
                 );
+
 
 
             // --------------------------------------------------
@@ -317,6 +463,7 @@ float minorLine =
                 );
 
 
+
             // --------------------------------------------------
             // Soft major contour feather
             // --------------------------------------------------
@@ -330,6 +477,7 @@ float minorLine =
                 );
 
 
+
             // ==================================================
             // BROAD FEATHER TEXTURE
             // ==================================================
@@ -339,6 +487,7 @@ float minorLine =
                     vPosition * 12.0
                 );
 
+
             majorFeather *=
                 mix(
                     0.35,
@@ -347,18 +496,10 @@ float minorLine =
                 );
 
 
+
             // ==================================================
             // PARTICULATE GRAIN
             // ==================================================
-            //
-            // This is the experiment we're currently testing.
-            //
-            // Unlike the previous smooth noise, this creates
-            // individual random cells.
-            //
-            // The grain is deliberately exaggerated so we can
-            // actually see what it looks like.
-            //
 
             float fineGrain =
                 hash(
@@ -368,8 +509,6 @@ float minorLine =
                 );
 
 
-            // Only the brighter random grains are selected.
-
             float grainMask =
                 step(
                     0.72,
@@ -377,12 +516,11 @@ float minorLine =
                 );
 
 
-            // Restrict grain to the feather.
-
             float grain =
                 grainMask *
                 majorFeather *
                 0.35;
+
 
 
             // ==================================================
@@ -395,27 +533,29 @@ float minorLine =
                 grain;
 
 
+
             // ==================================================
             // CONTOUR BALANCE
             // ==================================================
-
-            // Fine contours become more visible.
 
             float minorIntensity =
                 minorLine * 0.24;
 
 
-            // Major contours become more restrained.
-
             float majorIntensity =
                 majorLine * 0.13;
 
 
-            // Combine the two contour systems.
+
+            // ==================================================
+            // COMBINE CONTOURS
+            // ==================================================
 
             float line =
                 minorIntensity +
                 majorIntensity;
+
+
 
             // ==================================================
             // FINAL INTENSITY
@@ -426,13 +566,31 @@ float minorLine =
                 line;
 
 
+
             // ==================================================
             // FINAL COLOR
             // ==================================================
 
-            vec3 color =
+            vec3 baseColor =
                 vec3(0.30) *
-                intensity;
+                relief;
+
+
+            vec3 minorColor =
+                vec3(0.35) *
+                minorIntensity;
+
+
+            vec3 majorColor =
+                vec3(0.84, 0.89, 0.24) *
+                majorIntensity;
+
+
+            vec3 color =
+                baseColor +
+                minorColor +
+                majorColor;
+
 
 
             gl_FragColor =
@@ -440,12 +598,15 @@ float minorLine =
                     color,
                     1.0
                 );
+
         }
 
     `,
 
     side: THREE.DoubleSide
+
 });
+
 
 
 // ============================================================
@@ -461,6 +622,7 @@ const terrain =
 scene.add(terrain);
 
 
+
 // ============================================================
 // CURSOR
 // ============================================================
@@ -472,23 +634,27 @@ let pointerX = 0;
 let pointerY = 0;
 
 
+
 window.addEventListener(
     "pointermove",
     (event) => {
 
         targetPointerX =
             (event.clientX /
-            window.innerWidth) *
+                window.innerWidth) *
             12 -
             6;
 
+
         targetPointerY =
             -(event.clientY /
-            window.innerHeight) *
+                window.innerHeight) *
             12 +
             6;
+
     }
 );
+
 
 
 // ============================================================
@@ -497,10 +663,23 @@ window.addEventListener(
 
 function animate() {
 
-    requestAnimationFrame(animate);
+    requestAnimationFrame(
+        animate
+    );
+
 
     const time =
         performance.now() * 0.001;
+
+
+
+    // ========================================================
+    // UPDATE SHADER TIME
+    // ========================================================
+
+    material.uniforms.uTime.value =
+        time;
+
 
 
     // ========================================================
@@ -511,9 +690,11 @@ function animate() {
         (targetPointerX - pointerX) *
         0.06;
 
+
     pointerY +=
         (targetPointerY - pointerY) *
         0.06;
+
 
 
     // ========================================================
@@ -529,8 +710,10 @@ function animate() {
         const x =
             positions.getX(i);
 
+
         const y =
             positions.getY(i);
+
 
 
         // ----------------------------------------------------
@@ -540,24 +723,48 @@ function animate() {
         const angle =
             0.45;
 
+
         const rotatedX =
             x * Math.cos(angle) -
             y * Math.sin(angle);
+
 
         const rotatedY =
             x * Math.sin(angle) +
             y * Math.cos(angle);
 
 
-        // Subtle domain warp to make the terrain less wave-like
-const warpX = noise(x * 0.18, y * 0.18) * 0.25;
-const warpY = noise(x * 0.18 + 100, y * 0.18 + 100) * 0.25;
 
-const largeTerrain =
-    noise(
-        rotatedX * 0.12 + warpX + time * 0.008,
-        rotatedY * 0.12 + warpY + time * 0.006
-    ) * 0.75;
+        // ----------------------------------------------------
+        // Subtle domain warp
+        // ----------------------------------------------------
+
+        const warpX =
+            noise(
+                x * 0.18,
+                y * 0.18
+            ) * 0.25;
+
+
+        const warpY =
+            noise(
+                x * 0.18 + 100,
+                y * 0.18 + 100
+            ) * 0.25;
+
+
+
+        const largeTerrain =
+            noise(
+                rotatedX * 0.12 +
+                warpX +
+                time * 0.008,
+
+                rotatedY * 0.12 +
+                warpY +
+                time * 0.006
+            ) * 0.75;
+
 
 
         // ----------------------------------------------------
@@ -571,6 +778,7 @@ const largeTerrain =
             ) * 0.12;
 
 
+
         // ----------------------------------------------------
         // Fine detail
         // ----------------------------------------------------
@@ -580,6 +788,7 @@ const largeTerrain =
                 x * 2.0,
                 y * 2.0
             ) * 0.04;
+
 
 
         // ----------------------------------------------------
@@ -592,6 +801,7 @@ const largeTerrain =
             fineTerrain;
 
 
+
         // ====================================================
         // CURSOR
         // ====================================================
@@ -599,8 +809,10 @@ const largeTerrain =
         const dx =
             x - pointerX;
 
+
         const dy =
             y - pointerY;
+
 
         const cursorDistance =
             Math.sqrt(
@@ -621,6 +833,7 @@ const largeTerrain =
             cursorInfluence * 0.06;
 
 
+
         // ====================================================
         // FINAL ELEVATION
         // ====================================================
@@ -629,11 +842,14 @@ const largeTerrain =
             terrainHeight * 0.30 +
             cursorWave;
 
+
         positions.setZ(
             i,
             z
         );
+
     }
+
 
 
     // ========================================================
@@ -645,6 +861,7 @@ const largeTerrain =
     geometry.computeVertexNormals();
 
 
+
     // ========================================================
     // RENDER
     // ========================================================
@@ -653,7 +870,9 @@ const largeTerrain =
         scene,
         camera
     );
+
 }
+
 
 
 // ============================================================
@@ -670,10 +889,12 @@ window.addEventListener(
 
         camera.updateProjectionMatrix();
 
+
         renderer.setSize(
             window.innerWidth,
             window.innerHeight
         );
+
 
         renderer.setPixelRatio(
             Math.min(
@@ -681,8 +902,10 @@ window.addEventListener(
                 1.5
             )
         );
+
     }
 );
+
 
 
 // ============================================================
