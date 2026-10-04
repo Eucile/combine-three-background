@@ -437,7 +437,7 @@ const material = new THREE.ShaderMaterial({
             // ==================================================
 
             float majorLevel =
-                contourElevation * 8.0;
+                contourElevation * 5.0;
 
 
             float majorDistance =
@@ -472,7 +472,7 @@ const material = new THREE.ShaderMaterial({
                 1.0 -
                 smoothstep(
                     0.012,
-                    0.075,
+                    0.025,
                     majorDistance
                 );
 
@@ -488,12 +488,7 @@ const material = new THREE.ShaderMaterial({
                 );
 
 
-            majorFeather *=
-                mix(
-                    0.35,
-                    1.0,
-                    featherTexture
-                );
+           majorFeather *= 0.75;
 
 
 
@@ -511,7 +506,7 @@ const material = new THREE.ShaderMaterial({
 
             float grainMask =
                 step(
-                    0.72,
+                    0.55,
                     fineGrain
                 );
 
@@ -519,7 +514,7 @@ const material = new THREE.ShaderMaterial({
             float grain =
                 grainMask *
                 majorFeather *
-                0.35;
+                0.25;
 
 
 
