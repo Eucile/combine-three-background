@@ -65,8 +65,8 @@ document.body.appendChild(renderer.domElement);
 const geometry = new THREE.PlaneGeometry(
     30,
     30,
-    500,
-    500
+    250,
+    250
 );
 
 const positions = geometry.attributes.position;
@@ -753,11 +753,11 @@ function animate() {
             noise(
                 rotatedX * 0.12 +
                 warpX +
-                time * 0.008,
+                time * 0.05,
 
                 rotatedY * 0.12 +
                 warpY +
-                time * 0.006
+                time * 0.04
             ) * 0.75;
 
 
@@ -825,7 +825,7 @@ function animate() {
 
 
         const cursorWave =
-            cursorInfluence * 0.06;
+            cursorInfluence * 0.20;
 
 
 
