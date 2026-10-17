@@ -534,11 +534,11 @@ const material = new THREE.ShaderMaterial({
             // ==================================================
 
             float minorIntensity =
-                minorLine * 0.24;
+                minorLine * 0.15;
 
 
             float majorIntensity =
-                majorLine * 0.13;
+                majorLine * 0.10;
 
 
 
@@ -577,7 +577,7 @@ const material = new THREE.ShaderMaterial({
 
 
             vec3 majorColor =
-                vec3(0.84, 0.89, 0.24) *
+                vec3(0.33, 0.35, 0.36) *
                 majorIntensity;
 
 
