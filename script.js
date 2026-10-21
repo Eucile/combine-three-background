@@ -567,8 +567,8 @@ const material = new THREE.ShaderMaterial({
             // ==================================================
 
             vec3 baseColor =
-                vec3(0.30) *
-                relief;
+                vec3(0.0666667) +
+                vec3(0.30) * relief;
 
 
             vec3 minorColor =

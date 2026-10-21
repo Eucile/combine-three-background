@@ -1,6 +1,8 @@
+html,
 body {
-    margin: 0;
-    background: #111111;
+  margin: 0;
+  min-height: 100%;
+  background: #212424 !important;
 }
 
 canvas {
@@ -8,3 +10,19 @@ canvas {
     inset: 0;
     z-index: 0;
 }
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+
+  background-image: url("./noise.png");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+
+  opacity: 0.60;
+  mix-blend-mode: soft-light;
+}
+
