@@ -650,6 +650,20 @@ window.addEventListener(
     }
 );
 
+// Webflow cursor communication
+window.addEventListener("message", (event) => {
+
+    if (event.origin !== "https://combine-f4f6c9.webflow.io/") {
+        return;
+    }
+
+    if (event.data.type === "cursor-position") {
+        targetPointerX = event.data.x;
+        targetPointerY = event.data.y;
+    }
+
+});
+
 
 
 // ============================================================
@@ -683,12 +697,12 @@ function animate() {
 
     pointerX +=
         (targetPointerX - pointerX) *
-        0.06;
+        0.10;
 
 
     pointerY +=
         (targetPointerY - pointerY) *
-        0.06;
+        0.10;
 
 
 

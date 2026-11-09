@@ -2,7 +2,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #212424 !important;
+  /* background: #212424 !important; */
 }
 
 canvas {
