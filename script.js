@@ -653,13 +653,20 @@ window.addEventListener(
 // Webflow cursor communication
 window.addEventListener("message", (event) => {
 
-    if (event.origin !== "https://combine-f4f6c9.webflow.io/") {
+    console.log("THREE.JS RECEIVER:", event.origin, event.data);
+
+    if (event.origin !== "https://combine-f4f6c9.webflow.io") {
+        console.log("Origin rejected");
         return;
     }
 
     if (event.data.type === "cursor-position") {
+
         targetPointerX = event.data.x;
         targetPointerY = event.data.y;
+
+        console.log("Cursor targets updated:", targetPointerX, targetPointerY);
+
     }
 
 });
